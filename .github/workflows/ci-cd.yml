@@ -1,0 +1,76 @@
+name: FastAPI CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    env:
+      GEMINI_MODEL_NAME: test
+      POLAR_API_KEY: test
+      POLAR_TEST_API: test
+      POLAR_WEBHOOK_SECRET: test
+      POLAR_TEST_WEBHOOK: test
+      GOOGLE_API_KEY: test
+      REDIS_ENDPOINT: redis://127.0.0.1:3442
+      GOOGLE_CLIENT_ID: test
+      GOOGLE_CLIENT_SECRET: test
+      RESEND_API_KEY: test
+      FRONTEND_URL: test
+      OPENAI_API_KEY: test
+
+      DB_HOST: localhost
+      DB_PORT: 8000
+      DB_NAME: test
+      DB_PASSWORD: test
+      DB_USER: test
+
+      ENCRYPTION_SECRET_KEY: test
+      SERIALIZER_SECRET_KEY: test
+      TIMEDELTA: 60
+      APP_SECRET: test
+      KIMI_API_KEY: test
+      ENVIRONMENT: test
+      RESET_TOKEN_SALT: test
+      TELEGRAM_BOT_TOKEN: test
+      TELEGRAM_CHAT_ID: test
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11" # Adjust to match your project
+
+      - name: Install Dependencies
+        # This step now runs in the root directory (./),
+        # so it will successfully find your requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest httpx mypy
+
+      - name: Run Pytest
+        working-directory: ./app
+        run: pytest
+
+      - name: Mypy
+        working-directory: ./app
+        run: mypy main.py
+
+  deploy:
+    name: Deploy to Coolify
+    needs: test # Uncommented this just in case!
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify Build on Hetzner
+        run: |
+          curl --request GET "${{ secrets.COOLIFY_WEBHOOK }}" \
+               --header "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"

@@ -1,0 +1,4 @@
+Generic single-database configuration with an async dbapi.
+
+alembic revision --autogenerate -m "add result column to extraction log"
+alembic upgrade head

@@ -1,0 +1,233 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\newcommand{\todo}[1]{\textcolor{blue!65!black}{\textbf{[PLACEHOLDER: #1]}}}
+\newcommand{\planned}[1]{\textcolor{blue!65!black}{\textbf{[PLANNED: #1]}}}
+\title{TimberParse: Field-Level Accuracy and Uncertainty of Vision--Language Extraction from Timber Structural Plans}
+\author{\todo{Author names and affiliations}}
+\date{Draft for study planning --- 2 October 2026}
+
+\begin{document}
+\maketitle
+\noindent\fcolorbox{red!65!black}{red!5}{\parbox{0.95\linewidth}{\textbf{Draft status.} No empirical evaluation has been completed. Blue placeholders and planned sample sizes are illustrative and must be replaced with observed values before public release. The synthetic software demonstration is excluded from the proposed research dataset.}}
+
+\begin{abstract}
+Structural timber plans encode member identities and properties across framing layouts, schedules, notes, and multiple sheets. Schema-valid vision--language model (VLM) output can nevertheless contain incorrect values, unsupported assertions, and missed members. We present TimberParse, a prospective empirical evaluation of the existing SmartStructs extraction workflow on independently drafted timber structural plans. One frozen VLM processes each PDF using seven existing prompts and schemas. Drawing-grounded human review records member matches, missing members, field verdicts, and evidence markings. The co-primary descriptive endpoints are project-averaged matched-field accuracy and member recall; precision, failure rates, and the ability of original uncertainty flags to identify errors are secondary endpoints. The protocol separates missing outputs from incorrect values, retains unknown flag status, and evaluates flag-based selection against random selection at the same field-review budget. Observable drawing characteristics are recorded before result inspection, and confidence intervals resample complete projects rather than individual fields. The working sample target is \planned{80 held-out drawing sets from at least three sources, with a separate 10-project pilot}. No empirical results are available. The intended contribution is an auditable characterization of extraction reliability, flag utility, and limitations for this fixed timber-plan workflow. Model superiority, calibrated confidence, and engineering safety are outside the claims supported by this design.
+\end{abstract}
+
+\section{Introduction}
+Reading a timber structural plan requires more than recognizing text. A member mark on a framing sheet may point to dimensions elsewhere on the page, a schedule on another sheet, or a note that qualifies the material and spacing. A missing beam, an incorrect span, and an unflagged material assumption create different review problems, even if all are hidden inside a valid JSON response. The central question of this study is therefore: \emph{How accurately does one fixed VLM-based SmartStructs workflow extract member-level information from real timber structural plans, and how well do its existing uncertainty indications identify errors?}
+
+Recent studies establish the relevance of this question but leave a specific gap. Talebi-Kalaleh and Mei~\cite{talebi2026} report strong structural-component detection and model drafting on 100 author-generated framing plans; they explicitly note that their evaluation does not cover independently drafted plans. BlueprintAgent~\cite{xu2026} evaluates extraction from 300 real scanned sheets in reinforced-concrete frame projects, demonstrating that real structural blueprint evaluation is already an active research area. AECV-Bench~\cite{kondratenko2026} tests object counting and question answering on architectural and engineering drawings, while Enginuity~\cite{kumar2026} examines engineering diagrams and parts-table extraction. These tasks do not directly measure the correctness of timber member properties and whether the extraction's own field-level uncertainty signals help a reviewer find errors.
+
+Our intended contribution is a reproducible \emph{evaluation protocol} for that narrower problem: (1) a member and field inventory derived from the original SmartStructs schemas, (2) drawing-grounded human review with explicit denominators and saved evidence, and (3) an analysis of uncertainty flags and plan complexity. A dataset contribution will be claimed only if an annotated corpus is actually assembled and its access conditions are documented. Until then, TimberParse denotes the evaluation workflow and study, rather than an established public benchmark.
+
+\section{Related work and positioning}
+\subsection{Drawing parsing and document understanding}
+CubiCasa5K~\cite{kalervo2019} provides dense annotations of architectural floor-plan objects and demonstrates a supervised approach to parsing those images. DocVQA~\cite{mathew2021} establishes question answering over document images, while MP-DocVQA~\cite{tito2023} explicitly extends this task across pages. These works motivate attention to layout and cross-page evidence, but neither floor-plan segmentation nor selected question answering establishes completeness of a timber-member inventory. Likewise, success on a generic visual benchmark is useful prior evidence when selecting a model, but cannot substitute for measurement on the target extraction task.
+
+The recent AEC and engineering studies discussed above~\cite{talebi2026,xu2026,kondratenko2026,kumar2026} are the closest application-level context. We distinguish the proposed evaluation by its timber-property schema, manual field evidence, and audit of the existing flags. We do not assert that drawing interpretation, structural extraction, or uncertainty-aware automation is new. Their reported scores are not numerical baselines for this study: inputs, entity definitions, evaluation units, and denominators differ. A claim of improvement over those systems would require a common dataset and task, which is not proposed here.
+
+\subsection{Selective prediction and evaluation practice}
+Selective prediction studies the trade-off between retaining predictions and rejecting them for further handling~\cite{geifman2017}. SmartStructs supplies categorical uncertainty flags rather than a continuous confidence score, so the present study can evaluate one flag-defined operating point, not a full risk--coverage curve or a risk guarantee. Calibration concerns agreement between predicted probabilities and empirical correctness~\cite{guo2017}; no such probabilities are available here. Consequently, references to ``uncertainty'' throughout this paper mean the observable flag mechanism, not a validated estimate of epistemic uncertainty.
+
+The study also draws on work concerning annotation agreement~\cite{artstein2008}, model-selection bias~\cite{cawley2010}, statistical evaluation~\cite{dror2018}, clustered-data resampling~\cite{field2007}, and dataset and model documentation~\cite{gebru2021,mitchell2019}. These references support specific safeguards below rather than serving as evidence that the current system is reliable.
+
+\section{Research questions and scope of inference}
+\begin{enumerate}[leftmargin=*,label=\textbf{RQ\arabic*:}]
+\item \textbf{Extraction reliability.} On eligible held-out projects, how accurate are matched-member fields, and how complete is the member inventory? Field accuracy and member recall are co-primary descriptive outcomes because either alone can conceal a different failure mode.
+\item \textbf{Flag utility.} Among assessable fields, do the original flags concentrate errors relative to random selection at the same field count, and what error rate remains in unflagged outputs? Unknown flag status is a separate reported category.
+\item \textbf{Drawing characteristics.} How do reliability and flag utility vary with prespecified, manually observed plan characteristics? These comparisons are exploratory associations, not causal effects of complexity.
+\end{enumerate}
+The inferential target is this fixed workflow on new projects resembling the sampled sources and eligibility criteria. One model is appropriate for that target. It cannot establish model rankings, superiority of the prompts over alternative prompts, or the best achievable VLM performance. Model choice, sampling rules, annotations, primary endpoints, and analysis code should be frozen in a dated protocol before held-out inference. Deviations will be reported rather than retrospectively presented as prespecified.
+
+\section{Task and evaluated system}
+\subsection{Input and output}
+The input unit is one PDF drawing set. The existing SmartStructs workflow submits that PDF to a configured Google VLM with separate, schema-constrained calls for \texttt{floor\_system}, \texttt{footing}, \texttt{post}, \texttt{roof\_system}, \texttt{shear\_wall}, \texttt{wall}, and \texttt{project\_context}. The prompts and Pydantic schemas are read from the current backend source; the evaluation adapter copies their text and schemas into each run record. The model identifier, response metadata, and any failed calls are retained. The optional existing link resolver can produce a separate reconciled stage, but raw extraction is the proposed primary endpoint. Structural calculators and design-code checks are outside this study.
+
+The system produces collection objects such as roof rafters, floor joists, beams, posts, and walls, with fields allowed by the original schemas. A repeated joist group represented by one schema object remains \emph{one member unit}; it is not counted as each physical joist. For scoring, nested objects are traversed to leaf fields, while arrays are reviewed as whole values. Notes, uncertainty metadata, and fields marked \texttt{SKIP\_EXTRACTION} in the source schema are excluded from field accuracy.
+
+\subsection{Uncertainty signal}
+The baseline uses \texttt{uncertain\_areas} lists in its structured outputs. An exact field name in a list is treated as flagged; an explicit list without the field name is treated as unflagged; a missing or null list gives unknown status. A flag attached to a parent object is not automatically propagated to every child field. The primary analysis uses only the immutable original flag interpretation. Reviewer mappings of free-text or parent-level flags are analyzed separately using a mapping rule fixed during the pilot. Because the interface can display metrics with manual overrides, the manuscript analysis must reconstruct original flags from the frozen predictions and inventory rather than silently use overridden export scores. No correctness verdict may determine the mapping of an ambiguous flag.
+
+\section{Study design}
+\subsection{Drawing-set selection}
+The proposed sample is \planned{approximately 80 held-out timber structural drawing sets, plus a separate pilot set of approximately 10}. These targets are planning values, not collected data. Drawing sets should come from \planned{at least three independent drafting sources or offices} and include a range of one-story and multistory projects, digital and scanned PDFs, clear and difficult callouts, and projects with and without member schedules. Each project's pages remain together in the same study split; near-duplicate revisions of one project should not straddle pilot and held-out sets. The synthetic demonstration bundled with the evaluation application is used only for software checks.
+
+Eligible sets must contain timber framing information within the existing schema and be legally available for the study. A sampling register will list every candidate, source, inclusion decision, and reason for exclusion. From the available register, projects will be randomly ordered within source and selected according to a source allocation fixed before inference. Convenience access to a few offices will be described as such; it does not constitute a representative industry sample. Visually difficult plans are retained when the source is usable by a reviewer; exclusion is reserved for documented conditions such as corrupt files, missing required drawing content, or unavailable permission. Missing schedules and out-of-schema components are logged separately from model omissions. Revisions, duplicate files, and repeated template families are checked manually as well as by file hashes. Related projects remain in one split and, where they cannot be treated as independent, form one resampling cluster.
+
+\subsection{Sample size and stopping rule}
+The 80-project target is a feasibility assumption, not a power calculation. For orientation, an independent-project mean accuracy with between-project standard deviation $s=0.15$ would have an approximate normal 95\% interval half-width $1.96s/\sqrt{80}\approx0.033$; $s=0.20$ gives approximately 0.044. These are illustrative calculations, not promised precision, and ignore further dependence between projects. Pilot variability and annotation workload will inform the final fixed sample size before held-out inference. The study will stop at that preregistered count or a preregistered acquisition deadline, not when a desired accuracy is reached. Rare flagged errors may remain imprecisely estimated even with many fields. Neither the pilot nor repeated runs contribute additional independent projects to the primary sample.
+
+\subsection{Operationalizing plan complexity}
+
+Before model inference or result inspection, a reviewer records a plan profile: PDF page count (automatic), number of stories, roof planes when countable, project type, anonymized source code, PDF source type, legibility, presence of a member schedule, degree of schedule lookup, degree of cross-sheet lookup, and free-text complexity notes. Unknown values may remain unknown. These descriptors are kept separate rather than collapsed into an arbitrary ``complexity score.'' The held-out evaluation and complexity categories should be frozen after the pilot and before inspecting held-out accuracy.
+
+The annotation codebook defines stories as above-grade building stories shown in the set, with basements, split levels, and partial sets described in notes. Roof planes are counted only under a pilot-tested convention; otherwise the field remains unknown. Legibility is ``clear'' if relevant callouts can be read consistently at the standard review zoom, ``mixed'' if localized callouts require additional inspection, and ``difficult'' if reading limitations materially obstruct relevant content. Schedule and cross-sheet dependence are ``none'' when required values are available locally, ``some'' for isolated lookups, and ``extensive'' when lookups recur across member groups. Annotators record a representative page reference in notes for nontrivial classifications. These ordinal descriptors are judgment-based measures whose agreement must also be audited. Page count is retained continuously for descriptive plots; the planned bands are secondary summaries, not validated complexity thresholds.
+
+\subsection{Frozen extraction protocol}
+The final manuscript must specify \todo{exact model identifier and available version information, source commit and source-file hashes, API/SDK versions, execution dates, and generation settings}. Settings left to provider defaults are declared unknown where appropriate, rather than described as deterministic. Selection may use independent published benchmarks and practical API compatibility; it may not optimize held-out TimberParse scores. Prompt changes and schema repairs are confined to the pilot to reduce selection bias~\cite{cawley2010}.
+
+The first scheduled run on each held-out PDF is the primary run. No best-of-several selection is permitted. Failed or partial calls remain in the run-availability denominator; partial outputs can be annotated but are reported separately from fully completed runs. A retry, if needed operationally, is stored as a distinct secondary run and does not replace the original failure. Raw outputs are archived unchanged. Optional link reconciliation is a separate paired analysis on the same PDFs with independent stage annotations. Imported JSON is excluded from the primary analysis unless its provenance is independently verified. This protocol does not assume access to provider training data and cannot rule out pretraining contamination.
+
+A prespecified repeatability subset of \planned{10 held-out projects, each run three times in total} can quantify variation using the existing multiple-run storage. Its selection must precede outcome inspection, all runs must be reported, and the first run alone enters primary results. This is an optional secondary analysis, not an ensemble or a comparison of VLMs; if resources do not permit it, run-to-run stability remains an explicit unmeasured limitation.
+
+\subsection{Human reference review}
+Before opening predictions, reviewers prepare a drawing-only inventory of in-scope member groups and required reference properties, with page references. This is a manual protocol step, not an automated feature of the application. It reduces dependence on the model's proposed inventory. Reviewers then match predictions to reference members using the mark, story, location, collection, and drawing evidence. Matching is one-to-one within a collection; a second prediction for the same reference object is a duplicate. For unmarked or grouped members, the grouping convention is fixed during the pilot. Cases of ambiguous identity are resolved before inventory completeness is declared; unresolved cases are disclosed, not forced into a match.
+
+The application records matched members as present, unmatched predictions as extra or duplicate, and unrepresented reference members as missed. A collection is complete only after all predictions and reference objects are accounted for. Field review follows the codebook below. Predictions remain immutable; corrections and notes are separate records. Evidence rectangles are required for every disputed or corrected value and missed member, and for the independently audited sample of correct values. A page reference alone may suffice where an attribute is established by a general note applying to many members. Markings demonstrate traceability, not automatic verification of a verdict.
+
+\begin{table}[ht]
+\centering\small
+\caption{Prespecified interpretation of field verdicts. All criteria require pilot examples before the held-out review.}
+\begin{tabular}{@{}p{0.19\linewidth}p{0.72\linewidth}@{}}
+\toprule
+Verdict & Operational rule \\
+\midrule
+Correct & Supported by the source for the matched member, with equivalent units and notation under the frozen codebook. \\
+Incorrect & Contradicted by the source, assigned to the wrong member, or omitted/null although an applicable value is recoverable. \\
+Unsupported & A non-null assertion lacks adequate evidence in the supplied set, even if it is plausible. \\
+Indeterminate & Conflicting, ambiguous, or unreadable source evidence prevents a defensible correctness judgment. \\
+Not applicable & The property genuinely does not apply, or no value is required and a null/omission is appropriate. This earns no accuracy credit. \\
+Unreviewed & No final judgment; retained in coverage counts and prohibited in a declared completed primary review. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Numerical values are converted to the schema's units before comparison. Acceptable differences are limited to the source's stated precision and a field-specific rounding rule frozen during the pilot; there is no universal percentage tolerance. Nominal timber sizes are not equated with actual dimensions unless the schema demands that conversion. Species, grade, and engineered-product designations require the appropriate reference attribute, not merely similar text. Whole-array verdicts require all applicable items to satisfy the rule. Derived fields excluded by the source schema are not scored; other schema defaults without drawing support may be unsupported. Because a default can arise from schema parsing, an unsupported output is not automatically attributed to the VLM's generation mechanism.
+
+\subsection{Reviewer reliability and adjudication}
+The protocol requires a primary reviewer competent in timber-plan interpretation and an independent second reviewer of comparable competence; their qualifications and relationship to system development will be disclosed. The second reviewer will assess \planned{20 of the 80 held-out projects}, selected before results by source and page-count strata, including their complete inventories, field verdicts, and plan profiles. Independent reviews use separate project-folder copies. Original judgments are retained before a joint evidence-based adjudication establishes the reference used in final scoring; unresolved disagreements remain indeterminate. Agreement is measured before adjudication using raw agreement, a verdict confusion matrix, and nominal Cohen's $\kappa$, with the category distribution reported because chance-corrected coefficients depend on prevalence~\cite{artstein2008}. Member matching disagreements are reported separately from agreement on shared field units. The source-only first pass is blind to predictions; subsequent field review in the current interface is not blinded to uncertainty flags. That limitation must not be described as a blinded annotation experiment.
+
+\section{Outcome measures and analysis}
+\subsection{Estimands, scope, and denominator accounting}
+Primary property outcomes concern the six physical-system schemas; project-context fields are reported separately so that easy contextual fields do not conceal member-property errors. The complete schema-derived field list and source exclusions are frozen before held-out scoring. Let $C$, $I$, and $U$ denote reviewed fields marked correct, incorrect, and unsupported, respectively, after fields belonging to extra or duplicate members have been removed. Matched-field accuracy within each project is
+\begin{equation}
+ A_{\mathrm{field}}=\frac{C}{C+I+U}.
+\end{equation}
+Unreviewed, indeterminate, and not-applicable fields do not enter this denominator and are reported separately. Every predicted member must have a final member verdict before primary field scoring: the application's ability to display a partial score is not evidence of completed research annotation. Accuracy is calculated from manual verdicts; the software does not automatically decide numerical tolerances. A property on a completely missed member is absent from matched-field accuracy, so this is conditional attribute correctness, not end-to-end information recovery. Member recall is reported alongside it. Source-available null/omitted fields on present members are errors under the codebook, preventing abstentions from artificially raising accuracy. Counts of returned values, nulls, omissions, and excluded verdicts accompany the score.
+
+For each completed collection, let $P$, $E$, $D$, and $M$ be the counts of present, extra, duplicate, and missed member objects. Member precision is $P/(P+E+D)$ and member recall is $P/(P+M)$. Incomplete inventories have no valid member recall. Zero denominators are reported as not applicable rather than zero.
+
+For the co-primary summaries, calculate field accuracy and member recall within each project, then average each over projects with a defined denominator. Report these project counts and the number with no evaluable output; a failed project is never counted as a correct or uneventful case. The secondary pooled ratio weights projects by their field or member counts. Report both because they answer different questions: performance on a typical evaluable project versus on a typical scored item. No single combined ``overall reliability'' score merges the two endpoints. Availability is reported over all attempted projects and all seven calls per project, with reasons for failures. Accuracy conditional on complete runs and partial-run results are shown separately; neither is described as unconditional performance on the entire submitted corpus.
+
+\subsection{Uncertainty flags and a within-system comparator}
+
+For uncertainty analysis, only reviewed, accuracy-eligible fields with a known field-level flag state are used. Let $E_f$ be flagged errors, $E_k$ all errors with known flag state, $F$ all flagged eligible fields, $E_u$ unflagged errors, and $N_u$ all unflagged eligible fields. The three reported measures are
+\begin{equation}
+ \mathrm{Error\text{-}flag\ recall}=\frac{E_f}{E_k},\qquad
+ \mathrm{Flag\ precision}=\frac{E_f}{F},\qquad
+ \mathrm{Unflagged\ error\ rate}=\frac{E_u}{N_u}.
+\end{equation}
+The number of eligible fields with unknown flag status is reported alongside these measures. Known-status flag coverage is $F/(F+N_u)$. The unflagged error rate and retained fraction $N_u/(F+N_u)$ describe one empirical selective-prediction operating point~\cite{geifman2017}. They do not provide calibrated probabilities, a complete risk--coverage curve, or a guarantee that unflagged fields are correct~\cite{guo2017}.
+
+To assess whether flags are informative without adding another VLM, compare their error capture with random field selection at the same budget within each project. For project $j$ with $K_j$ known-status eligible fields, $F_j$ flags, and $E_{kj}$ errors, uniform random selection of $F_j$ fields has expected error capture $F_jE_{kj}/K_j$. Sum these expectations across projects and compare them with the observed flagged-error count. Bootstrap the difference at the project level. This comparator tests association between flags and errors, not a causal benefit of changing the prompt. A stratified sensitivity analysis uses the same calculation within project and field family, where defined, to check whether apparent enrichment is driven by particular field types. This is a simulated field-count budget: the current system does not measure review time, and fields can differ substantially in review effort.
+
+Unknown-status fields are not silently treated as unflagged. In addition to the known-status results, report their accuracy, error count, and fraction of all eligible fields. As an operational sensitivity analysis, treat flagged and unknown-status fields together as a review queue and recompute its field-count coverage and residual error rate outside the queue. Manual flag mappings are a separate sensitivity analysis, never a replacement for the original-flag result. All of these quantities are derived from exported records; the current UI does not implement the random-selection comparator or these statistical summaries.
+
+\subsection{Intervals and dependence}
+The planned analysis uses 2,000 nonparametric bootstrap replicates with a published random seed and percentile 95\% intervals. Complete projects, or previously identified related-project families, are resampled within source, retaining all their members and fields together. This respects the clustered observations instead of treating thousands of fields as independent replicates~\cite{field2007}. Aggregate ratios and differences are recomputed from counts in every replicate, rather than by averaging subgroup percentages with incompatible denominators. For project-mean estimands, recompute the corresponding unweighted project mean. An undefined metric in resamples is reported with the number of valid replicates; if fewer than 95\% are defined, omit that interval and report the underlying counts as sparse.
+
+These intervals assume independent project clusters within the participating sources and condition on the observed source allocation. Three offices are too few to support precise population-wide inference over offices. Source-specific results and leave-one-source-out descriptive summaries assess dependence on that allocation without claiming to solve this limitation. Guidance on matching statistical procedures to the evaluation unit motivates this explicit analysis plan~\cite{dror2018}. Co-primary outcomes are estimated rather than tested against an arbitrary success threshold. No post-hoc ``safe enough'' threshold or collection of uncorrected subgroup significance tests is proposed.
+
+\subsection{Complexity, heterogeneity, and sensitivity analyses}
+Results are reported by structural system and prespecified field family: identity/type, size/material, geometry/spacing, and other in-scope properties. The schema-path mapping for these families is fixed during the pilot and published. Plan strata comprise page count (\planned{1--5, 6--15, and $>15$ pages}), stories (\planned{one versus two or more}), legibility, PDF type, schedule dependence, and cross-sheet dependence. Each table gives project counts, eligible-item counts, estimates, and intervals where estimable. Groups with fewer than \planned{10 independent project clusters} are shown descriptively without comparative claims; this is a reporting convention, not a guarantee of adequate power. Unknown profile values form their own group. Repeated searches for an advantageous threshold are prohibited.
+
+All complexity associations are exploratory because page count, stories, office conventions, and lookup dependence can co-vary. Report marginal contrasts and source-specific patterns; do not interpret them as adjusted causal effects or fit a large regression with sparse strata. Prespecified sensitivity analyses compare project-mean with pooled summaries, original with separately mapped flags, and complete-run with partial-run results. An indeterminate-as-error calculation $C/(C+I+U+Q)$, where $Q$ counts indeterminate fields, is a conservative stress test rather than an estimate of their unknown truth. Optional raw--reconciled and repeated-run comparisons use paired project records and keep their inference separate from primary findings. Statistical scripts, agreement calculations, and dataset summaries remain study work to be completed from the existing exports; none is represented as an implemented application feature.
+
+\section{Results: layout to complete after evaluation}
+\noindent\textbf{No values in this section are measured results.} The following tables are reporting templates; all blue entries require data from the held-out review.
+
+\begin{table}[ht]
+\centering
+\caption{Planned held-out corpus description. All entries are placeholders.}
+\label{tab:corpus}
+\begin{tabular}{@{}p{0.61\linewidth}p{0.27\linewidth}@{}}
+\toprule
+Descriptor & Held-out sample \\
+\midrule
+Drawing sets / independent sources & \todo{$N$ / $S$} \\
+PDF pages, median (range) & \todo{median (min--max)} \\
+One-story / multistory sets & \todo{one-story count / multistory count} \\
+Born-digital / scanned / mixed & \todo{$n_d$ / $n_s$ / $n_m$} \\
+Member schedule present & \todo{$n$ of $N$} \\
+Extensive cross-sheet lookup & \todo{$n$ of $N$} \\
+Complete / partial / failed VLM runs & \todo{$n_c$ / $n_p$ / $n_f$} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Per-project quantities to summarize. The co-primary estimands are the project means of field accuracy and member recall. Report their intervals and evaluable project counts separately; no entries are empirical yet.}
+\label{tab:main}
+\begin{tabular}{@{}p{0.48\linewidth}p{0.18\linewidth}p{0.24\linewidth}@{}}
+\toprule
+Outcome & Estimate & Numerator / denominator \\
+\midrule
+Matched-field accuracy & \todo{$A$} & \todo{$C$ / $(C+I+U)$} \\
+Member precision, completed collections & \todo{$P_r$} & \todo{$P$ / $(P+E+D)$} \\
+Member recall, completed collections & \todo{$R_m$} & \todo{$P$ / $(P+M)$} \\
+Error-flag recall, known status & \todo{$R_f$} & \todo{$E_f$ / $E_k$} \\
+Flag precision, known status & \todo{$P_f$} & \todo{$E_f$ / $F$} \\
+Unflagged error rate, known status & \todo{$U_e$} & \todo{$E_u$ / $N_u$} \\
+Unknown flag status & \todo{$n$} & \todo{$n$ / eligible fields} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The final results narrative follows the research questions: \todo{recruitment/exclusion counts and completed, partial, and failed runs}; \todo{pre-adjudication reviewer agreement and unresolved cases}; \todo{co-primary project means with intervals, eligible project counts, pooled scores, and project-level distributions}; \todo{original-flag capture compared with random selection, unknown status, and unflagged errors}; and \todo{prespecified complexity contrasts and sensitivity results}. No placeholder estimates, example confidence intervals, or example $p$-values are presented as observations.
+
+Error analysis will code reviewer notes using a pilot-defined taxonomy: missing member, duplicate/extra member, wrong identity or association, incorrect value/unit, unsupported assertion, and unresolved source ambiguity. Report frequencies with overlapping categories explicitly identified. Any failure mechanism inferred only from outputs is a reviewer interpretation, not direct evidence of the model's internal reasoning. Include permitted examples of correct extraction, flagged error, unflagged error, and source ambiguity, selected under a stated rule rather than for visual impressiveness. Each example should pair its source excerpt with the output, verdict, and original flag.
+
+\section{Discussion}
+The interpretation must be driven by the completed measurements. If uncertainty flags capture many errors but also flag many correct fields, they may still be useful as a review queue, but their review cost should be stated. If the unflagged error rate remains high, the flags cannot be treated as a safety screen. Differences across stories or page-count groups would identify where reviewers should be more cautious, but these descriptors are correlated and subgroup sizes may be small. For example, multistory sets often contain more sheets and cross-references; a descriptive association must not be presented as a causal effect of story count.
+
+The strongest potential practical contribution is an evidence-backed account of what the existing workflow extracts reliably and which outputs still require human checking. A positive flag-enrichment result would support a narrower conclusion that flags help prioritize error-prone fields at a fixed count budget. It would not establish faster engineering review, reduced design errors, or user trust; those require separate timed or prospective human studies. A negative result would also be informative by showing that apparently useful uncertainty language does not reliably identify errors. A high field score with low member recall would indicate incomplete extraction despite plausible returned values. These interpretations make the study useful without requiring a favorable result.
+
+The single-model design is defensible as a system-characterization study with a frozen target and transparent limitations. It cannot support algorithmic superiority or a state-of-the-art claim. Independent drawings, complete reference inventories, reproducible verdicts, and denominators that expose failures are more directly relevant to the stated questions than adding model names without a stronger reference standard. The ultimate strength of the contribution depends on carrying out these procedures and making enough evidence available for external scrutiny.
+
+\section{Threats to validity}
+\textbf{Construct validity.} Schema-object recall is not physical-member recall when groups represent repeated joists. Field accuracy is conditional on matched objects and adjudicable evidence. Whole-array scoring and equal field weights can hide differences in engineering consequence; results therefore remain extraction measures rather than safety scores. Plan profiles are observable proxies with subjective elements, not a validated latent complexity scale.
+
+\textbf{Internal validity.} Source-first inventory, independent review, frozen rubrics, and preserved disagreements reduce but do not eliminate annotation and developer bias. Reviewers see flags during field review. Schema defaults can be confused with model assertions unless provenance is inspected. Repeated prompt changes, favorable retry selection, or outcome-informed flag mappings would bias the evaluation and are prohibited in the primary analysis. Provider updates and nondeterminism can alter outputs despite fixed local source files.
+
+\textbf{External and statistical validity.} Participating offices, language, jurisdiction, building types, and legibility range define the tested domain and must be reported. An 80-project convenience sample cannot establish industry-wide accuracy; source-specific dependence and rare error categories may leave intervals unstable. More scored fields do not replace more independent projects. The study neither compares competing models nor measures speed, human automation bias, downstream structural calculations, or design safety. Provider training-data exposure to the drawings is unknown.
+
+\section{Reproducibility, data stewardship, and implementation status}
+The release should include a dataset datasheet describing collection, exclusions, composition, permitted uses, and access restrictions~\cite{gebru2021}, plus a workflow report documenting its intended use, configuration, and performance boundaries in the spirit of model cards~\cite{mitchell2019}. The latter describes this application of a third-party model; it is not a provider model card. Record PDF hashes, source and prompt hashes, schema snapshots, model/API details, first-run outcomes, raw and optional reconciled predictions, pre-adjudication reviews, final annotations, evidence markings, profile revisions, the frozen codebook, and analysis scripts. Commit identifiers alone do not capture uncommitted source changes, so file hashes and copied sources matter.
+
+Existing application features include local project storage, schema/prompt snapshots, immutable predictions, manual verdicts, missed-member records, evidence rectangles, revision history, plan profiles, and descriptive score exports. The drawing-only reference pass, independent reviewer procedure, cross-project statistics, agreement calculation, and matched-budget flag analysis are protocol requirements; they have not yet been executed or automated. This distinction prevents a proposed method from being mistaken for completed validation.
+
+The final release plan is \todo{which anonymized PDFs, excerpts, annotations, source code, and aggregate counts may be shared with permission}. Keep identifiable addresses, client information, and restricted drawing content out of public artifacts. Obtain permission for the intended model-provider processing as well as for publication. If redaction is required before inference, use and hash that same redacted version for every run and reference review. Where PDFs cannot be released, disclose that constraint and provide permitted annotations and aggregate evidence without claiming fully reproducible public benchmark access.
+
+\section{Conclusion}
+TimberParse is a proposed field-level evaluation of one existing SmartStructs VLM workflow on timber structural plans. Its distinctive focus is the combination of real-plan member and property accuracy, original uncertainty-flag utility, and observed drawing complexity. The present manuscript is a study-ready draft. Its empirical conclusions, tables, and abstract must be updated only after the planned held-out annotation is complete.
+
+\begin{thebibliography}{99}
+\bibitem{talebi2026} M. Talebi-Kalaleh and Q. Mei. ``Training-Free Agentic Computer Vision for Structural Component Detection in 2D Structural Framing Plans.'' arXiv:2608.17237, 2026. \url{https://arxiv.org/abs/2608.17237}.
+\bibitem{xu2026} Z. Xu, C. Yang, L. Wang, J. Fan, and C. Wang. ``BlueprintAgent: Constraint-Triggered Targeted Revisits for Simulation-Ready Generation from Scanned Structural Blueprints.'' arXiv:2609.07362, 2026. \url{https://arxiv.org/abs/2609.07362}.
+\bibitem{kondratenko2026} A. Kondratenko, M. Birhane, H. E. Hsain, and G. Maciocci. ``AECV-Bench: Benchmarking Multimodal Models on Architectural and Engineering Drawings Understanding.'' arXiv:2601.04819, 2026. \url{https://arxiv.org/abs/2601.04819}.
+\bibitem{kumar2026} A. Kumar, I. Motiyani, T. Kasturi, E. Seefried, P. Movva, and T. Ghosal. ``Enginuity: A Dataset and Benchmark for Vision-Language Understanding of Engineering Diagrams.'' arXiv:2606.03410, 2026. \url{https://arxiv.org/abs/2606.03410}.
+\bibitem{kalervo2019} A. Kalervo, J. Ylioinas, M. H\"aiki\"o, A. Karhu, and J. Kannala. ``CubiCasa5K: A Dataset and an Improved Multi-Task Model for Floorplan Image Analysis.'' 2019. \url{https://arxiv.org/abs/1904.01920}.
+\bibitem{mathew2021} M. Mathew, D. Karatzas, and C. V. Jawahar. ``DocVQA: A Dataset for VQA on Document Images.'' WACV, 2021. \url{https://arxiv.org/abs/2007.00398}.
+\bibitem{tito2023} R. Tito, D. Karatzas, and E. Valveny. ``Hierarchical Multimodal Transformers for Multi-Page DocVQA.'' arXiv:2212.05935, version 2, 2023. \url{https://arxiv.org/abs/2212.05935}.
+\bibitem{geifman2017} Y. Geifman and R. El-Yaniv. ``Selective Classification for Deep Neural Networks.'' Advances in Neural Information Processing Systems 30, 2017. \url{https://arxiv.org/abs/1705.08500}.
+\bibitem{guo2017} C. Guo, G. Pleiss, Y. Sun, and K. Q. Weinberger. ``On Calibration of Modern Neural Networks.'' Proceedings of Machine Learning Research 70:1321--1330, 2017. \url{https://proceedings.mlr.press/v70/guo17a.html}.
+\bibitem{artstein2008} R. Artstein and M. Poesio. ``Inter-Coder Agreement for Computational Linguistics.'' Computational Linguistics 34(4):555--596, 2008. \url{https://aclanthology.org/J08-4004/}.
+\bibitem{cawley2010} G. C. Cawley and N. L. C. Talbot. ``On Over-fitting in Model Selection and Subsequent Selection Bias in Performance Evaluation.'' Journal of Machine Learning Research 11:2079--2107, 2010. \url{https://jmlr.org/papers/v11/cawley10a.html}.
+\bibitem{dror2018} R. Dror, G. Baumer, S. Shlomov, and R. Reichart. ``The Hitchhiker's Guide to Testing Statistical Significance in Natural Language Processing.'' ACL, pp.\ 1383--1392, 2018. \url{https://aclanthology.org/P18-1128/}.
+\bibitem{field2007} C. A. Field and A. H. Welsh. ``Bootstrapping Clustered Data.'' Journal of the Royal Statistical Society: Series B 69(3):369--390, 2007. \url{https://doi.org/10.1111/j.1467-9868.2007.00593.x}.
+\bibitem{gebru2021} T. Gebru, J. Morgenstern, B. Vecchione, J. W. Vaughan, H. Wallach, H. Daum\'e III, and K. Crawford. ``Datasheets for Datasets.'' Communications of the ACM, 2021. \url{https://arxiv.org/abs/1803.09010}.
+\bibitem{mitchell2019} M. Mitchell, S. Wu, A. Zaldivar, P. Barnes, L. Vasserman, B. Hutchinson, E. Spitzer, I. D. Raji, and T. Gebru. ``Model Cards for Model Reporting.'' Conference on Fairness, Accountability, and Transparency, 2019. \url{https://arxiv.org/abs/1810.03993}.
+\end{thebibliography}
+\end{document}

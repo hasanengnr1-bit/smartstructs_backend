@@ -1,0 +1,10 @@
+.vscode/
+
+__pycache__/
+
+
+frontend/
+test.txt
+
+j1497.pdf
+migrations/versions

@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    image: myapp
+    command: >
+      bash -c "alembic upgrade head && 
+               uvicorn main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"
+    env_file: .env
+    restart: unless-stopped
+    networks:
+      - adlpsoyvewq8ue4yvmgxuj2n
+      - coolify
+
+  worker:
+    image: myapp
+    command: taskiq worker taskiq_task:broker --log-level DEBUG
+    env_file: .env
+    restart: unless-stopped
+    networks:
+      - adlpsoyvewq8ue4yvmgxuj2n
+      - coolify
+
+networks:
+  default:
+    name: coolify
+    external: true
+  adlpsoyvewq8ue4yvmgxuj2n:
+    name: adlpsoyvewq8ue4yvmgxuj2n
+    external: true
+  coolify:
+    name: coolify
+    external: true
